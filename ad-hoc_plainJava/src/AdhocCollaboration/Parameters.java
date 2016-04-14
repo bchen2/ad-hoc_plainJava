@@ -75,16 +75,16 @@ public class Parameters {
 	public Parameters() {
 
 		initalCapNumber = 20;
-		totalTick = 100;
-		randomSeed = new int[] { 318856981 };
+		totalTick = 1000;
+//		randomSeed = new int[] { 318856981 };
 
 		/* 30 seeds */
-//		 randomSeed = new int[]{ 318856981, 318906411,
-//		 318949337, 318994768, 319041788, 319097042, 319158544, 319210195,
-//		 319253832, 319302136, 319344747, 319393883, 319433666, 319483658,
-//		 319520815, 319571219, 319609484, 319659640, 319695607, 319747153,
-//		 319785662, 319846666, 319881572, 319934879, 319967846, 320021327,
-//		 320051734, 320104619, 320135073, 320187406 };
+		 randomSeed = new int[]{ 318856981, 318906411,
+		 318949337, 318994768, 319041788, 319097042, 319158544, 319210195,
+		 319253832, 319302136, 319344747, 319393883, 319433666, 319483658,
+		 319520815, 319571219, 319609484, 319659640, 319695607, 319747153,
+		 319785662, 319846666, 319881572, 319934879, 319967846, 320021327,
+		 320051734, 320104619, 320135073, 320187406 };
 
 		/* 100 seeds */
 		// randomSeed = new int[]{ 318856981,
@@ -117,11 +117,11 @@ public class Parameters {
 		AgentDistrubution = "3040";
 		TaskDistrubution = "3333";
 //		direcotry = "./20cap1000tick";
-		direcotry="/Users/BinChen/Desktop/testing111";
-//		configFile="20choose5.properties";
+		direcotry="/Users/BinChen/Desktop/testing444";
+		configFile="5choose5.properties";
 		
 				
-		configFile="config_typesRandom.properties";
+//		configFile="config_typesRandom.properties";
 
 	}
 

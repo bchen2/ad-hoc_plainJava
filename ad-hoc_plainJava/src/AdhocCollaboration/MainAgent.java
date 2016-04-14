@@ -171,6 +171,18 @@ public class MainAgent {
 	  */
 	 public static SubtaskLearningType subtaskLearningType=new SubtaskLearningType();
 	 
+	 
+	 /**
+	  * use this to see how many unique tasks agents bid in each tick.(each tick main agent post 20 tasks, we 
+	  * want to see how many tasks get bids
+	  */
+	 public static HashSet<Integer> uniqueTasksBidSetPerTick = new HashSet<Integer>();
+	 
+	 
+	 
+	 
+	 
+	 
     
     /** Creates a new instance of Model 
      * @throws IOException */
@@ -244,10 +256,10 @@ public class MainAgent {
 	           	 configFile = new Properties();
 	           	try {
 	           		//TODO
-	       			configFile.load(this.getClass().getClassLoader().getResourceAsStream("config_typesRandom.properties"));//this is for 20 choose 5
+//	       			configFile.load(this.getClass().getClassLoader().getResourceAsStream("config_typesRandom.properties"));//this is for 20 choose 5
 //	       			configFile.load(this.getClass().getClassLoader().getResourceAsStream("10choose5.properties"));
 //	           		System.out.println("Loading "+params.configFile);
-//	       			configFile.load(this.getClass().getClassLoader().getResourceAsStream(params.configFile));
+	       			configFile.load(this.getClass().getClassLoader().getResourceAsStream(params.configFile));
 //	       			System.out.println("Loading "+params.configFile +" Success!");
 	       		} catch (IOException e) {
 	       			e.printStackTrace();
@@ -319,7 +331,7 @@ public class MainAgent {
 							+ "ObservedCapUsedCount,ObervatedCapUsedAtOneTick,OptionType,TaskIdEvla,EU_sol,EU_Ldo,EU_Lobs\n");
 				}
 			}else if (OutputClass.agentOutputShort){
-				writer.write("tick,Id,taskAssigned,bidsWon,taskReward,rewardGot,selfGain,obsGain,\n");
+				writer.write("tick,Id,taskAssigned,bidsWon,taskReward,rewardGot,selfGain,obsGain,uniqueTasksAllAgentsBidsPerTick\n");
 			}
 
 		}
@@ -416,6 +428,7 @@ public class MainAgent {
 //        	/**
 //        	 * call agents to bid
 //        	 */
+        	uniqueTasksBidSetPerTick.clear();
         	for (Agent a :  this.blackboard.getAgentList()){
         		a.agentSelectTask();
         	}

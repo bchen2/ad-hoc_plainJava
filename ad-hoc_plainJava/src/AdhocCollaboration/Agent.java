@@ -938,6 +938,9 @@ public class Agent {
 			// update BidsSubmitted
 			this.bidsSubmitted++;
 			this.numBidsSubmitted++;
+			
+			//TODO
+			MainAgent.uniqueTasksBidSetPerTick.add(this.TaskTobidAtOneTick);
 
 			// print("Agent "+this.agentId+" bid on "+maxPotentialUtilityMessage.getTask().getId());
 		} else {// agent do not bid for any task
@@ -2219,6 +2222,8 @@ public class Agent {
 				// this.knownAgentSet.addAll(taskToBeExcutedMessage.getSubtasksAssignmentBySubtaskId(subtask.getId()));
 				// this.bb.getSharedKnowAgentSet().addAll(taskToBeExcutedMessage.getSubtasksAssignmentBySubtaskId(subtask.getId()));
 				// }
+			
+				
 
 				ticksToFinishRunning = taskToBeExcutedMessage.getTask()
 						.getTickToFinish();
@@ -3634,9 +3639,9 @@ public class Agent {
 		}
 		
 		String output = String
-				.format("%d,%d,%d,%d,%.4f,%.4f,%.4f,%.4f",
+				.format("%d,%d,%d,%d,%.4f,%.4f,%.4f,%.4f,%d",
 						MainAgent.tick, this.getId(),taskAssigned,bidsWon,this.getTaskReward(),this.getRewardAtCurrentTick(),this.getSelfGainAtOneTick(),
-						this.getObservationGainAtOneTick());
+						this.getObservationGainAtOneTick(),MainAgent.uniqueTasksBidSetPerTick.size());
 		return output;
 	}
 

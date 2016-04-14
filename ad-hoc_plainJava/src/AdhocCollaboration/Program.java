@@ -24,13 +24,30 @@ public class Program {
 		
 		Parameters params = Parameters.getInstance();
 		
+//		if (args.length>0){
+//			//args[0] contains the propertyfile name
+//			System.out.println("args[0] = "+args[0]);
+//			Parameters.createFromFile(args[0],Parameters.getInstance());
+//			System.out.println("Reading Properties file success.");
+//		}else{
+//			System.out.println("Using DEFAULT parameters!");
+//		}
+		
 		if (args.length>0){
-			//args[0] contains the propertyfile name
-			System.out.println("args[0] = "+args[0]);
-			Parameters.createFromFile(args[0],Parameters.getInstance());
-			System.out.println("Reading Properties file success.");
+			//args[0] is AO, args[1] is TO, args[2] is configure file Name, args[3] is the output directory 
+			/*
+			 * java -jar ad-hoc_palin.jar 0 0 5choose5.properties /Users/BinChen/Desktop/testing444
+			 */
+			double [] NewAO={Double.parseDouble(args[0])};
+			params.agentOpenness=NewAO;
+			double [] NewTO={Double.parseDouble(args[1])};
+			params.taskOpenness=NewTO;
+			params.configFile=args[2];
+			params.direcotry=args[3];
+			
+			System.out.println("Using DEFAULT parameters with AO="+Arrays.toString(NewAO)+" TO="+Arrays.toString(NewTO)+" ConfigureFile="+params.configFile+" dir="+params.direcotry);
 		}else{
-			System.out.println("Using DEFAULT parameters!");
+			System.out.println("Using DEFAULT parameters");
 		}
 		
 		
@@ -42,6 +59,13 @@ public class Program {
 		int[] option=params.option;
 		int[] randomSeed=params.randomSeed;
 		String directory= params.direcotry;
+		
+		
+	
+		
+		
+		
+		
 		
 		int run=0; int count=0; int n=agentOpenness.length*taskOpenness.length*option.length;
 		int runTotal=randomSeed.length;
@@ -82,25 +106,25 @@ public class Program {
 	/*
 	 * Calculate statistics from the output files	
 	 */
-		NormalizePerTick_ShortAgentOutput  norm = new NormalizePerTick_ShortAgentOutput();
-		try {
-			norm.NormalizePerTick(directory);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		
-		
-		
-		PrintDuriation( startTime);
+//		NormalizePerTick_ShortAgentOutput  norm = new NormalizePerTick_ShortAgentOutput();
+//		try {
+//			norm.NormalizePerTick(directory);
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		}
+//		
+//		
+//		
+//		PrintDuriation( startTime);
 		
 		
 		/*
 		 * put result into tables 
 		 */
-		
-		CreateTables.plotTables(directory,params);
-		
-		PrintDuriation( startTime);
+//		
+//		CreateTables.plotTables(directory,params);
+//		
+//		PrintDuriation( startTime);
 		
 	}
 	
