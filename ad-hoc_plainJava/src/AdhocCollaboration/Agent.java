@@ -1467,90 +1467,53 @@ public class Agent {
 	private double ComputePotentialUtilityStrategy9(BlackboardMessage bm) {
 
 		double EU_solve = findEU_solve2(bm);// done
-		double EU_doing = findEU_doing1(bm);// done
-		double EU_observe=0;
-		
-		if (MainAgent.agentE_observe_reasoningImplementation==1){
-			 EU_observe = findEU_observeAll_Op1(bm);
+		if (EU_solve==0){//agent did not qualify for any subtask
+			return 0;//agent did not learn by doing nor by observation since it does not qualify for any subtask
 		}else{
-			 EU_observe = findEU_observeAll(bm);//used in AAMAS2016
-		}
-		
-		// double EU_learn=0.5*EU_doing+0.5*EU_observe;
-		double EU_learn = EU_doing + EU_observe;// do not use the 0.5
-
-		outputAgentUsolveUlearnToFile(EU_learn, EU_solve, bm.getTask().getId(),
-				bm.getTask().getType());
-		
-		
-		outputAgentBiddingDetail(MainAgent.tick,this.agentId,
-				bm.getTask().getId(),EU_solve,EU_doing,EU_observe);
-
-		ArrayList<BlackboardMessage> K_NeighborList = find_K_Neighbor(bm);
-
-		double F_RA, F_RB, P_wb, P_off;
-		if (K_NeighborList == null) {
-			P_wb = 0.5;
-			P_off = 0.5;
-		} else {// Calculate them
-			double sumRejectA = 0;
-			double sumRejectB = 0;
-			double sumBidsSubmittedAndWon = 0;
-			for (BlackboardMessage message : K_NeighborList) {
-				sumRejectA += message.RejectA;
-				sumRejectB += message.RejectB;
-				sumBidsSubmittedAndWon += message.bidSubmittedAndWon;
+			double EU_doing = findEU_doing1(bm);// done
+			double EU_observe=0;
+			
+			if (MainAgent.agentE_observe_reasoningImplementation==1){
+				 EU_observe = findEU_observeAll_Op1(bm);
+			}else{
+				 EU_observe = findEU_observeAll(bm);//used in AAMAS2016
 			}
+			
+			// double EU_learn=0.5*EU_doing+0.5*EU_observe;
+			double EU_learn = EU_doing + EU_observe;// do not use the 0.5
 
-			// NOTE: we use psoudel count here. we and 1 to sumRejectA and 2 to
-			// BidsSubmitted.
-			double size = K_NeighborList.size();
-			double epsilonTop = 1 / (size + 1);
-			double epsilonBottom = 4 / (size + 1);
-			F_RA = (sumRejectA + epsilonTop)
-					/ (K_NeighborList.size() + epsilonBottom);
-			P_wb = 1 - F_RA;
+			outputAgentUsolveUlearnToFile(EU_learn, EU_solve, bm.getTask().getId(),
+					bm.getTask().getType());
+			
+			
+		
 
-			size = sumBidsSubmittedAndWon;
-			epsilonTop = 1 / (size + 1);
-			epsilonBottom = 4 / (size + 1);
-			F_RB = (sumRejectB + epsilonTop)
-					/ (sumBidsSubmittedAndWon + epsilonBottom);
-			P_off = 1 - F_RB;
+			ArrayList<BlackboardMessage> K_NeighborList = find_K_Neighbor(bm);
 
-			// double a= (K_NeighborList.size()-sumRejectA);
+			double EU=calculateEU( K_NeighborList,  EU_solve ,  EU_learn);
 
-			// print ("a="+a + " b="+sumBidsSubmittedAndWon);
+			/**
+			 * EU(T) = P_wb*P_off|wb*(1-P_failure(T))*(EU_solve+EU_learn) we set
+			 * P_failure(T)=0
+			 */
+		
+			
+			
+			outputAgentBiddingDetail(MainAgent.tick,this.agentId,
+					bm.getTask().getId(),bm.getTask().getType(),EU_solve,EU_doing,EU_observe,EU);
+			
+			//TODO
+//			if (this.getId()==2){
+//				System.out.println("*****TaskType"+bm.getTask().getType()+" EUsolve="+EU_solve+"  EU_learn="+EU_learn+" EU="+EU);
+//			}
+			
+			
+		
+
+			return EU;
+
 		}
-
-		/**
-		 * EU(T) = P_wb*P_off|wb*(1-P_failure(T))*(EU_solve+EU_learn) we set
-		 * P_failure(T)=0
-		 */
-		// find P_wb(T) and P_off(T), we used nearest k neighbor to find these
-		// 2.
-		// EU=P_wb(T) * P_off(T)*(1-P_failure(T))*(EU_learn+EU_solve)
-
-		
-		
-		double EU = P_wb * P_off * 1 * (EU_solve + EU_learn);
-		
-		
-		//TODO
-//		double EU = P_wb * P_off * 1 * (EU_solve + EU_doing);
-		
-		
-		
-		print("==========Agent " + this.agentId + "=============");
-		print("P_wb=" + P_wb + "  P_off=" + P_off);
-		print("EU_doing=" + EU_doing + "        EU_observe=" + EU_observe);
-		print("EU= " + EU + "     EU_sove=" + EU_solve + "    EU_learn="
-				+ EU_learn);
-
-		return EU;
-
 	}
-	
 	
 	private double calculateEU(ArrayList<BlackboardMessage> K_NeighborList, double EU_solve , double EU_learn){
 //		double F_RA, F_RB;
@@ -1600,14 +1563,14 @@ public class Agent {
 		return 	 P_wb * P_off * 1 * (EU_solve + EU_learn);
 	}
 
-	private void outputAgentBiddingDetail(int tick,int agentId,int id, double eU_solve,
-			double eU_doing, double eU_observe) {
+	private void outputAgentBiddingDetail(int tick,int agentId,int id,int type, double eU_solve,
+			double eU_doing, double eU_observe,double EU) {
 		if (OutputClass.biddingDetail && this.bb.getOption()==14){
 		try {
 			
 			double eU_learning=eU_doing+eU_observe;
 			double eU_total=eU_solve+eU_learning;
-			MainAgent.agentBiddingDetailWriter.write(tick+","+agentId+","+id+","+eU_solve+","+eU_learning+","+eU_total+","+eU_doing+","+eU_observe+"\n");
+			MainAgent.agentBiddingDetailWriter.write(tick+","+agentId+","+id+","+type+","+eU_solve+","+eU_learning+","+eU_total+","+eU_doing+","+eU_observe+","+EU+"\n");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -1629,23 +1592,27 @@ public class Agent {
 
 	private double ComputePotentialUtilityStrategy11(BlackboardMessage bm) {
 		double EU_solve = findEU_solve2(bm);// done
-		double EU_doing = findEU_doing1(bm);// done
-		double EU_observe =0;
-		
-		if (MainAgent.agentE_observe_reasoningImplementation==1){
-			 EU_observe = findEU_observeAll_Op1(bm);
+		if (EU_solve==0){
+			return 0;
 		}else{
-			 EU_observe = findEU_observeAll(bm);//used in AAMAS2016
+			double EU_doing = findEU_doing1(bm);// done
+			double EU_observe =0;
+			
+			if (MainAgent.agentE_observe_reasoningImplementation==1){
+				 EU_observe = findEU_observeAll_Op1(bm);
+			}else{
+				 EU_observe = findEU_observeAll(bm);//used in AAMAS2016
+			}
+			// double EU_learn=0.5*EU_doing+0.5*EU_observe;
+			double EU_learn = EU_doing + EU_observe;// do not use the 0.5
+
+			// outputAgentUsolveUlearnToFile(EU_learn,EU_solve,bm.getTask().getId(),
+			// bm.getTask().getType());
+
+			
+			return EU_solve + EU_learn;
 		}
-		// double EU_learn=0.5*EU_doing+0.5*EU_observe;
-		double EU_learn = EU_doing + EU_observe;// do not use the 0.5
-
-		// outputAgentUsolveUlearnToFile(EU_learn,EU_solve,bm.getTask().getId(),
-		// bm.getTask().getType());
-
 		
-		return EU_solve + EU_learn;
-//		return EU_solve + EU_doing;
 	}
 
 	/**
@@ -1664,55 +1631,27 @@ public class Agent {
 		// outputAgentUsolveUlearnToFile(EU_learn,EU_solve,bm.getTask().getId(),
 		// bm.getTask().getType());
 
-		ArrayList<BlackboardMessage> K_NeighborList = find_K_Neighbor(bm);
+		if (EU_solve==0){
+			return 0; //agent did not qualify for any subtask
+		}else{
+			ArrayList<BlackboardMessage> K_NeighborList = find_K_Neighbor(bm);
 
-		double F_RA, F_RB, P_wb, P_off;
-		if (K_NeighborList == null) {
-			P_wb = 0.5;
-			P_off = 0.5;
-		} else {// Calculate them
-			double sumRejectA = 0;
-			double sumRejectB = 0;
-			double sumBidsSubmittedAndWon = 0;
-			for (BlackboardMessage message : K_NeighborList) {
-				sumRejectA += message.RejectA;
-				sumRejectB += message.RejectB;
-				sumBidsSubmittedAndWon += message.bidSubmittedAndWon;
-			}
+			double EU=calculateEU( K_NeighborList,  EU_solve ,  0);
 
-			// NOTE: we use psoudel count here. we and 1 to sumRejectA and 2 to
-			// BidsSubmitted.
-			double size = K_NeighborList.size();
-			double epsilonTop = 1 / (size + 1);
-			double epsilonBottom = 4 / (size + 1);
-			F_RA = (sumRejectA + epsilonTop)
-					/ (K_NeighborList.size() + epsilonBottom);
-			P_wb = 1 - F_RA;
+			/**
+			 * EU(T) = P_wb*P_off|wb*(1-P_failure(T))*(EU_solve+EU_learn) we set
+			 * P_failure(T)=0
+			 */
+		
+			outputAgentBiddingDetail(MainAgent.tick,this.agentId,
+					bm.getTask().getId(),bm.getTask().getType(),EU_solve,0,0,EU);
+			
 
-			size = sumBidsSubmittedAndWon;
-			epsilonTop = 1 / (size + 1);
-			epsilonBottom = 4 / (size + 1);
-			F_RB = (sumRejectB + epsilonTop)
-					/ (sumBidsSubmittedAndWon + epsilonBottom);
-			P_off = 1 - F_RB;
-
+			return EU;
 		}
 
-		/**
-		 * EU(T) = P_wb*P_off|wb*(1-P_failure(T))*(EU_solve+EU_learn) we set
-		 * P_failure(T)=0
-		 */
-		// find P_wb(T) and P_off(T), we used nearest k neighbor to find these
-		// 2.
-		// EU=P_wb(T) * P_off(T)*(1-P_failure(T))*(EU_learn+EU_solve)
 
-		double EU = P_wb * P_off * 1 * (EU_solve);
-		print("==========Agent " + this.agentId + "=============");
-		print("P_wb=" + P_wb + "  P_off=" + P_off);
-		// print("EU_doing="+EU_doing +"        EU_observe="+EU_observe);
-		print("EU= " + EU + "     EU_sove=" + EU_solve + "    EU_learn=0");
-
-		return EU;
+	
 	}
 
 	private double findEU_doing(BlackboardMessage bm) {
