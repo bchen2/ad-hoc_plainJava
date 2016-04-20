@@ -156,7 +156,32 @@ public class MainAgent {
 	 * read in the config_typesRandom.properties file and create all the tasks and store it in this list
 	 */
 	 public static ArrayList<Task> TaskList = new ArrayList<Task>();
+	 
+	 /**
+	  * agentE_observe_reasoningImplementation=1,
+	  *  agent assumes there are agents better than itself for observing,
+	  * it estimate the observed agents cap  as qt+(1-qt)*(n/n_max). 
+	 * So agent can observe and learn as long as it is in close range of the agent it is observing.
+	 * 
+	 *  agentE_observe_reasoningImplementation=0, 
+	 *  this is the impementation used in AAMAS2016 paper, agent estimate observed agent's cap as qt-cap_h,l. Agent only learn
+	 *  if   0<=qt-cap_h,l<\beta
+	 *  
+	  */
+	public static int agentE_observe_reasoningImplementation=1;
 	
+	
+	/**
+	 * agentE_observe_updateImplementation=1
+	 * this is new implementation, agent will learn using E_observe=\alpha*capdiff*(\beta-capdiff), and agent will learn 
+	 * from the observed agent who gives the max E_observe.
+	 * 
+	 * agentE_observe_updateImplementation=0
+	 * this is the impelmentation used in AAMAS2016. agent will learn using E_observe=\alpha*(qt-cap)*(\beta-(qt-cap)). E_observe
+	 * did not depend on the observed agent's capability, it only depend on the qt of the subtask and the observing agent's own cap.
+	 * 
+	 */
+	public static int agentE_observe_updateImplementation=1;
 	
 	 public static FileWriter writer=null;
 	 public static FileWriter writer1=null;
@@ -331,7 +356,7 @@ public class MainAgent {
 							+ "ObservedCapUsedCount,ObervatedCapUsedAtOneTick,OptionType,TaskIdEvla,EU_sol,EU_Ldo,EU_Lobs\n");
 				}
 			}else if (OutputClass.agentOutputShort){
-				writer.write("tick,Id,taskAssigned,bidsWon,taskReward,rewardGot,selfGain,obsGain,uniqueTasksAllAgentsBidsPerTick\n");
+				writer.write("tick,Id,taskAssigned,bidsWon,taskReward,rewardGot,selfGain,obsGain,uniqueTasksAllAgentsBidsPerTick,taskTypeBid\n");
 			}
 
 		}
@@ -465,6 +490,7 @@ public class MainAgent {
 					int opType = a.optionType;
 					this.blackboard.getKilledAgentSet().add(a.getId());
 					this.blackboard.getAgentList().remove(a);
+					this.blackboard.getAgentMap().remove(a.getId());
 					print("removed agent "+ a.getId());
 //					getContext().remove(a);
 					

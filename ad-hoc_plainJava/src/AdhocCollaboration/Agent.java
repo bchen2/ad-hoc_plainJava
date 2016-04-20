@@ -1468,7 +1468,14 @@ public class Agent {
 
 		double EU_solve = findEU_solve2(bm);// done
 		double EU_doing = findEU_doing1(bm);// done
-		double EU_observe = findEU_observeAll(bm);// done
+		double EU_observe=0;
+		
+		if (MainAgent.agentE_observe_reasoningImplementation==1){
+			 EU_observe = findEU_observeAll_Op1(bm);
+		}else{
+			 EU_observe = findEU_observeAll(bm);//used in AAMAS2016
+		}
+		
 		// double EU_learn=0.5*EU_doing+0.5*EU_observe;
 		double EU_learn = EU_doing + EU_observe;// do not use the 0.5
 
@@ -1543,6 +1550,55 @@ public class Agent {
 		return EU;
 
 	}
+	
+	
+	private double calculateEU(ArrayList<BlackboardMessage> K_NeighborList, double EU_solve , double EU_learn){
+//		double F_RA, F_RB;
+		double P_wb, P_off;
+		if (K_NeighborList == null) {
+			P_wb = 0.5;
+			P_off = 0.5;
+		} else {// Calculate them
+//			double sumRejectA = 0;
+//			double sumRejectB = 0;
+			double sumBidsSubmittedAndWon = 0;
+			double sumTaskAuctionedOffAndWonBids=0;
+			for (BlackboardMessage message : K_NeighborList) {
+//				sumRejectA += message.RejectA;
+//				sumRejectB += message.RejectB;
+				sumBidsSubmittedAndWon += message.bidSubmittedAndWon;
+				if (message.bidSubmittedAndWon==1 && message.auctionedOff){
+					sumTaskAuctionedOffAndWonBids++;
+				}
+			}
+
+			// NOTE: we use psoudel count here. we and 1 to sumRejectA and 2 to
+			// BidsSubmitted.
+			double size = K_NeighborList.size();
+			double epsilonTop = 1 / (size + 1);
+			double epsilonBottom = 4 / (size + 1);
+//			F_RA = (sumRejectA + epsilonTop)
+//					/ (K_NeighborList.size() + epsilonBottom);
+//			P_wb = 1 - F_RA;
+			P_wb=(sumBidsSubmittedAndWon+epsilonTop)/(K_NeighborList.size() + epsilonBottom);
+
+			size = sumBidsSubmittedAndWon;
+			epsilonTop = 1 / (size + 1);
+			epsilonBottom = 4 / (size + 1);
+//			F_RB = (sumRejectB + epsilonTop)
+//					/ (sumBidsSubmittedAndWon + epsilonBottom);
+//			P_off = 1 - F_RB;
+
+			
+			P_off=(sumTaskAuctionedOffAndWonBids+epsilonTop)/(sumBidsSubmittedAndWon + epsilonBottom);
+			// double a= (K_NeighborList.size()-sumRejectA);
+
+			// print ("a="+a + " b="+sumBidsSubmittedAndWon);
+		}
+		
+		
+		return 	 P_wb * P_off * 1 * (EU_solve + EU_learn);
+	}
 
 	private void outputAgentBiddingDetail(int tick,int agentId,int id, double eU_solve,
 			double eU_doing, double eU_observe) {
@@ -1574,7 +1630,13 @@ public class Agent {
 	private double ComputePotentialUtilityStrategy11(BlackboardMessage bm) {
 		double EU_solve = findEU_solve2(bm);// done
 		double EU_doing = findEU_doing1(bm);// done
-		double EU_observe = findEU_observeAll(bm);// done
+		double EU_observe =0;
+		
+		if (MainAgent.agentE_observe_reasoningImplementation==1){
+			 EU_observe = findEU_observeAll_Op1(bm);
+		}else{
+			 EU_observe = findEU_observeAll(bm);//used in AAMAS2016
+		}
 		// double EU_learn=0.5*EU_doing+0.5*EU_observe;
 		double EU_learn = EU_doing + EU_observe;// do not use the 0.5
 
@@ -1582,7 +1644,6 @@ public class Agent {
 		// bm.getTask().getType());
 
 		
-		//TODO
 		return EU_solve + EU_learn;
 //		return EU_solve + EU_doing;
 	}
@@ -1703,6 +1764,7 @@ public class Agent {
 
 			double selfGain = alphaS * cap * (1 - cap);
 			// System.out.println("rawSelfGain="+selfGain);
+			//apply the probability
 			selfGain = QualDiff * selfGain;
 
 			double newQuality = (double) this.getCapabilityQuality(subtaskId)
@@ -1848,6 +1910,59 @@ public class Agent {
 	}
 	
 	
+	
+	
+	/**
+	 * in agent reasoning, agent observe ALL the subtask, agent assumes there will be agents who are better then itself
+	 * and the observed agents cap is estimated as qt+(1-qt)*(n/n_max). 
+	 * So agent can observe and learn as long as it is in close range of the agent it is observing 
+     * 
+	 * @param bm
+	 * @return
+	 */
+	private double findEU_observeAll_Op1(BlackboardMessage bm) {
+
+		double EU_observe = 0.0;
+		for (SubTask subtask : bm.getSubtasks()) {
+			int capId = subtask.getId();
+			double alphaO = MainAgent.subtaskLearningType.alphaO.get(capId);
+			int n_max=5; //this max number of agents this subtasks could need
+			int n=subtask.getNumAgents();
+			double qt=subtask.getQuality();
+			
+			double diff=qt+(1-qt)*(n/n_max)-this.getCapabilityQuality(capId);
+			
+			double delta = MainAgent.subtaskLearningType.delta;
+			double gain;
+
+			// System.out.println("Agent"+this.agentId+ "subtask"+capId +
+			// "alphaObserve="+alphaO);
+
+			if (diff <= 0 || diff >= delta) {
+				gain = 0;
+			} else {
+				gain = alphaO * diff * (delta - diff);
+				// apply the probability
+				gain = (1 - diff) * gain;
+			}
+			
+			if (gain>0){
+				double updatedQuality = getCapabilityQuality(capId)
+						+ gain;
+				if (updatedQuality > 1) {
+					updatedQuality = 1;
+					gain= 1 - getCapabilityQuality(capId);
+				}
+				
+				EU_observe +=gain;
+			}
+		
+
+		}
+
+		return EU_observe;
+
+	}
 	
 
 	/**
@@ -2829,52 +2944,92 @@ public class Agent {
 
 		
 		/**
-		 * learning from observation learning from every subtasks that it obsered
+		 * learning from observation. learning from every subtasks that it observed
 		 */
+		
 		for (SubTask observingSubtask : subtaskAll) {
 			int capId = observingSubtask.getId();
 
 			double alphaO = MainAgent.subtaskLearningType.alphaO.get(capId);
-			double diff = observingSubtask.getQuality()
-					- this.getCapabilityQuality(capId);
+			double diff;
 			double delta = MainAgent.subtaskLearningType.delta;
 			double gain;
+			double maxObervationalGain=0;
+			int finalObservedAgentId = -1;
 
 			// System.out.println("Agent"+this.agentId+ "subtask"+capId +
 			// "alphaObserve="+alphaO);
-
-			if (diff <= 0 || diff >= delta) {
-				gain = 0;
-			} else {
-				gain = alphaO * diff * (delta - diff);
-			}
-
 		
-			if (gain > 0) {
+			if ( MainAgent.agentE_observe_updateImplementation==1){
+
+				//this gives a list of agent who has been assigned to this subtask
+				ArrayList<Integer> observedAgentsList = new 	ArrayList<Integer>();
+				 observedAgentsList=temporaryMessage.getSubtasksAssignmentBySubtaskId(observingSubtask.getId());
+				 
+				 //choose the observed agent who gives max observational gain to observe from 
+				for (Integer observedAgentId : observedAgentsList){
+					if (observedAgentId!=this.agentId){
+//						Agent obervedAgent=this.bb.getAgentList().get(observedAgentId);
+						Agent obervedAgent=this.bb.getAgentMap().get(observedAgentId);
+						
+						diff=obervedAgent.getCapabilityQuality(capId)- this.getCapabilityQuality(capId);
+						if (diff <= 0 || diff >= delta) {
+							gain = 0;
+						} else {
+							gain = alphaO * diff * (delta - diff);
+						}
+						
+						if (gain>0 && gain> maxObervationalGain){
+							maxObervationalGain=gain;
+							finalObservedAgentId=observedAgentId;
+						}
+
+					}
+					
+					
+				}
+			}else{
+				diff = observingSubtask.getQuality()
+						- this.getCapabilityQuality(capId);
+				if (diff <= 0 || diff >= delta) {
+					maxObervationalGain = 0;
+				} else {
+					maxObervationalGain = alphaO * diff * (delta - diff);
+				}
+			}
+			
+			
+			 
+			 
+			
+			
+			
+		
+			if (maxObervationalGain > 0) {
 
 				double updatedQuality = getCapabilityQuality(capId)
-						+ gain;
+						+ maxObervationalGain;
 				if (updatedQuality > 1) {
 					updatedQuality = 1;
 					gain = 1 - getCapabilityQuality(capId);
 				}
-				if (gain > 0) {
+				if (maxObervationalGain > 0) {
 					this.ObservedSubtaskSet.add(capId);
 				}
 
-				this.bb.updateLearnedCap(gain);// record learned quality
-				this.updateIndividualLearnedCap(gain);// record individual learned
+				this.bb.updateLearnedCap(maxObervationalGain);// record learned quality
+				this.updateIndividualLearnedCap(maxObervationalGain);// record individual learned
 														// quality
 //				this.setObservationGainAtOneTick(gain);
-				this.addToObservationGainAtOneTick(gain);
-				this.TaskLearningGain = TaskLearningGain + gain;
+				this.addToObservationGainAtOneTick(maxObervationalGain);
+				this.TaskLearningGain = TaskLearningGain + maxObervationalGain;
 				// System.out.println(String.format("Agent %d gain learning %.4f utility by observating,	%.4f---> %.4f ",
 				// agentId, gain, getCapabilityQuality(observingSubtask.getId()),
 				// updatedQuality));
 
 				print(String
-						.format("Agent %d gain learning %.4f utility by observating,	%.4f---> %.4f ",
-								agentId, gain,
+						.format("Agent %d gain learning %.4f utility by observating agent %d,	%.4f---> %.4f ",
+								agentId, maxObervationalGain,finalObservedAgentId,
 								getCapabilityQuality(capId),
 								updatedQuality));
 				this.setCapabilityQuality(capId, updatedQuality);
@@ -3642,6 +3797,27 @@ public class Agent {
 				.format("%d,%d,%d,%d,%.4f,%.4f,%.4f,%.4f,%d",
 						MainAgent.tick, this.getId(),taskAssigned,bidsWon,this.getTaskReward(),this.getRewardAtCurrentTick(),this.getSelfGainAtOneTick(),
 						this.getObservationGainAtOneTick(),MainAgent.uniqueTasksBidSetPerTick.size());
+		return output;
+	}
+	
+	
+	public String getAgentOutputShort_withTaskBid() {
+		
+		/*this agent get a task assignment or not (NO-0 or YES-1)*/
+		int taskAssigned=0;
+		if (this.getTaskAssignmentAtOneTick()!=0){
+			taskAssigned=1;
+		}
+		
+		int bidsWon=0;
+		if (this.selectedForCurrentBid){
+			bidsWon=1;
+		}
+		
+		String output = String
+				.format("%d,%d,%d,%d,%.4f,%.4f,%.4f,%.4f,%d,%d",
+						MainAgent.tick, this.getId(),taskAssigned,bidsWon,this.getTaskReward(),this.getRewardAtCurrentTick(),this.getSelfGainAtOneTick(),
+						this.getObservationGainAtOneTick(),MainAgent.uniqueTasksBidSetPerTick.size(),this.TaskTypebidAtOneTick);
 		return output;
 	}
 
